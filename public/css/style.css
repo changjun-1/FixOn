@@ -1,0 +1,524 @@
+:root {
+  --bg: #f5f7fb;
+  --ink: #17243a;
+  --muted: #758095;
+  --accent: #315be8;
+  --line: #e7ebf2;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    15px/1.65 "Segoe UI",
+    "Malgun Gothic",
+    sans-serif;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+.button {
+  display: inline-block;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent);
+  padding: 10px 17px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+button:hover,
+.button:hover {
+  filter: brightness(0.94);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+button.secondary {
+  background: #eef2fa;
+  color: #334765;
+}
+button.danger {
+  background: #fff0ee;
+  color: #be4038;
+}
+aside {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 230px;
+  background: #fff;
+  border-right: 1px solid var(--line);
+  padding: 34px 24px;
+  display: flex;
+  flex-direction: column;
+}
+.brand {
+  font-size: 36px;
+  font-weight: 850;
+  letter-spacing: -2px;
+  color: var(--ink);
+}
+.brand span {
+  color: var(--accent);
+}
+small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.brand small {
+  margin-top: -5px;
+}
+nav {
+  margin-top: 48px;
+  display: grid;
+  gap: 9px;
+}
+nav a {
+  padding: 11px 16px;
+  color: #5d6a7f;
+  border-radius: 10px;
+}
+nav a:hover,
+nav a.active {
+  background: #edf2ff;
+  color: var(--accent);
+  font-weight: 700;
+}
+.account {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.account button {
+  margin-top: 12px;
+  width: 100%;
+}
+main {
+  margin-left: 230px;
+  max-width: 1700px;
+  padding: 0 42px;
+}
+header {
+  height: 76px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+}
+.heading {
+  margin: 32px 0 24px;
+}
+.eyebrow {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+h1 {
+  margin: 4px 0;
+  font-size: 30px;
+  letter-spacing: -1px;
+}
+h2 {
+  font-size: 20px;
+  margin: 0 0 10px;
+  letter-spacing: -0.5px;
+}
+p {
+  margin: 8px 0 16px;
+}
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+.hero {
+  padding: 35px 40px;
+  border-radius: 18px;
+  background: #315be8;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  overflow: hidden;
+}
+.hero h2 {
+  font-size: 29px;
+  line-height: 1.45;
+  margin-top: 15px;
+}
+.hero p {
+  color: #dce4ff;
+  font-size: 13px;
+}
+.pill {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #d7e0ff;
+}
+.white {
+  background: #fff;
+  color: var(--accent);
+  margin-top: 5px;
+}
+.hero-art {
+  align-self: center;
+  text-align: center;
+  font-size: 95px;
+  font-weight: 900;
+  letter-spacing: -9px;
+  line-height: 1;
+}
+.hero-art span {
+  font-size: 38px;
+  letter-spacing: -2px;
+}
+.hero-art small {
+  color: #bdcdff;
+  letter-spacing: 2px;
+  margin-top: 15px;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin: 24px 0;
+}
+.stat {
+  background: white;
+  border: 1px solid var(--line);
+  padding: 22px;
+  border-radius: 13px;
+}
+.stat span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.stat strong {
+  display: block;
+  font-size: 32px;
+  margin-top: 5px;
+}
+.panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 25px;
+  margin: 22px 0;
+}
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 15px;
+}
+.panel-heading h2 {
+  margin-bottom: 0;
+}
+.panel-heading p {
+  margin-bottom: 0;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0;
+}
+.filters input {
+  max-width: 280px;
+}
+.filters select {
+  max-width: 190px;
+}
+input,
+select,
+textarea {
+  background: #fff;
+  border: 1px solid #d9e0ec;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--ink);
+  width: 100%;
+  min-width: 0;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #bdccff;
+  border-color: var(--accent);
+}
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.table-scroll {
+  overflow: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  white-space: nowrap;
+}
+th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  background: #f8faff;
+}
+th,
+td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--line);
+}
+td button {
+  font-size: 12px;
+  padding: 6px 9px;
+  margin: 2px;
+}
+.badge {
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  background: #edf2ff;
+  color: #3658b8;
+}
+.badge.COMPLETED,
+.badge.RESOLVED {
+  background: #e7f7ef;
+  color: #22815a;
+}
+.badge.URGENT,
+.badge.REJECTED,
+.badge.CANCELLED {
+  background: #fff0ed;
+  color: #b85144;
+}
+.badge.IN_PROGRESS {
+  background: #fff5dc;
+  color: #a4750b;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 12px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.form-grid .wide {
+  grid-column: 1/-1;
+}
+.form-grid button {
+  justify-self: start;
+}
+.auth-card {
+  max-width: 460px;
+  margin: 45px auto 80px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 36px;
+}
+.auth-card form {
+  display: grid;
+  gap: 18px;
+  margin: 25px 0;
+}
+.auth-card h2 {
+  font-size: 22px;
+}
+.auth-card p {
+  font-size: 13px;
+}
+.symbol {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #edf2ff;
+  color: var(--accent);
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+#notice:not(:empty) {
+  padding: 13px 17px;
+  background: #e8f6ef;
+  color: #216f4d;
+  border-radius: 9px;
+  margin-bottom: 18px;
+}
+#notice.error {
+  background: #ffefed;
+  color: #aa3e35;
+}
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 35px;
+}
+footer {
+  font-size: 11px;
+  color: #98a2b3;
+  padding: 25px 0 35px;
+}
+dl {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 14px;
+}
+dt {
+  color: var(--muted);
+}
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.description {
+  white-space: pre-wrap;
+}
+.report-image {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 10px;
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 1000px) {
+  aside {
+    width: 190px;
+    padding: 25px 16px;
+  }
+  main {
+    margin-left: 190px;
+    padding: 0 22px;
+  }
+  .hero-art {
+    display: none;
+  }
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 650px) {
+  aside {
+    position: static;
+    width: auto;
+    padding: 15px 20px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    font-size: 28px;
+  }
+  .brand small {
+    display: none;
+  }
+  nav {
+    margin-top: 14px;
+    display: flex;
+    overflow: auto;
+    gap: 4px;
+  }
+  nav a {
+    white-space: nowrap;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  .account {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    font-size: 12px;
+  }
+  .account small {
+    display: none;
+  }
+  .account button {
+    margin: 0 0 0 auto;
+    width: auto;
+    padding: 6px 10px;
+  }
+  main {
+    margin-left: 0;
+    padding: 0 16px;
+  }
+  header {
+    height: 48px;
+    font-size: 9px;
+  }
+  header span:last-child {
+    display: none;
+  }
+  .heading {
+    margin: 23px 0 18px;
+  }
+  h1 {
+    font-size: 25px;
+  }
+  .hero {
+    padding: 25px;
+  }
+  .hero h2 {
+    font-size: 24px;
+  }
+  .stats {
+    gap: 10px;
+  }
+  .stat {
+    padding: 16px;
+  }
+  .panel {
+    padding: 17px;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .auth-card {
+    padding: 25px;
+    margin-top: 25px;
+  }
+  .filters input,
+  .filters select {
+    max-width: none;
+  }
+  .panel-heading {
+    align-items: flex-start;
+  }
+  dl {
+    grid-template-columns: 80px 1fr;
+  }
+}
