@@ -1,5 +1,7 @@
 # FixOn — 시설 고장 신고 및 정비 관리
 
+Vercel 배포 방법: [docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md). 로컬 실행은 아래 기존 명령을 그대로 사용합니다. 배포 시 온라인 DB와 MySQL 세션용 sessions 테이블을 준비합니다.
+
 교수님 수업의 Express·Nunjucks·Sequelize·MySQL 구조를 바탕으로 만든 웹 프로젝트입니다. 별도 React 서버 없이 Express 한 서버에서 화면과 JSON API를 제공합니다.
 
 ## 구현 범위

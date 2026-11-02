@@ -8,11 +8,13 @@ function createApp(db) {
   if (!process.env.SECRET || process.env.SECRET.length < 32)
     throw new Error("SECRET을 32자 이상으로 설정하세요.");
   const app = express();
+  const deployed = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+  if (deployed) app.set("trust proxy", 1);
   app.disable("x-powered-by");
   nunjucks.configure(path.join(__dirname, "views"), {
     autoescape: true,
     express: app,
-    watch: process.env.NODE_ENV !== "test",
+    watch: !deployed && process.env.NODE_ENV !== "test",
   });
   app.set("view engine", "html");
   if (process.env.NODE_ENV !== "test") app.use(require("morgan")("dev"));
@@ -31,7 +33,10 @@ function createApp(db) {
     express.urlencoded({ extended: false, limit: "64kb" }),
     require("cookie-parser")(),
   );
-  const store = new session.MemoryStore();
+  const persistent = deployed || process.env.SESSION_STORE === "mysql";
+  const store = persistent
+    ? new (require("./middleware/sessionStore").MySQLSessionStore)(db.Session)
+    : new session.MemoryStore();
   app.locals.sessionStore = store;
   app.use(
     session({
@@ -43,7 +48,7 @@ function createApp(db) {
       cookie: {
         httpOnly: true,
         sameSite: "lax",
-        secure: false,
+        secure: deployed,
         maxAge: 1000 * 60 * 60 * 4,
       },
     }),
@@ -111,4 +116,21 @@ function createApp(db) {
   });
   return app;
 }
-module.exports = { createApp };
+const deploymentApp = express();
+let initialized;
+deploymentApp.get("/healthz", (req, res) => res.json({ status: "ok" }));
+deploymentApp.use((req, res, next) => {
+  if (!initialized) {
+    initialized = (async () => {
+      const db = require("./models").createDatabase("production");
+      try { await db.sequelize.authenticate(); return createApp(db); }
+      catch (error) { await db.sequelize.close(); throw error; }
+    })().catch(error => { initialized = undefined; throw error; });
+  }
+  initialized.then(handler => handler(req, res, next)).catch(error => {
+    console.error("Database initialization failed:", error.name);
+    res.status(503).json({ error: "온라인 DB 연결과 초기 테이블 설정을 확인하세요." });
+  });
+});
+module.exports = deploymentApp;
+module.exports.createApp = createApp;

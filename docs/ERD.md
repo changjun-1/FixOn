@@ -1,5 +1,7 @@
 # FixOn 데이터베이스 설계
 
+배포용 추가 테이블 `sessions`: sid VARCHAR(128) PK, data MEDIUMTEXT NOT NULL, expires DATETIME NOT NULL (인덱스). 서버 간 로그인 세션 공유에 사용하며 업무 라우터·API 개수에는 포함하지 않는다. 로컬은 기존 메모리 세션을 기본으로 유지한다.
+
 MySQL + Sequelize. 모델은 models/에서 정의하며 models/index.js에서 관계를 연결한다. 테이블은 모두 createdAt·updatedAt DATETIME을 가진다. 업무 테이블의 id는 INTEGER AUTO_INCREMENT 기본 키다.
 
 ```mermaid

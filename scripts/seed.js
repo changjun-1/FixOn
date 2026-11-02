@@ -1,6 +1,13 @@
 const bcrypt = require("bcrypt");
 const { createDatabase } = require("../models");
 async function seed() {
+  if (process.env.NODE_ENV === "production") {
+    for (const key of ["SEED_ADMIN_PASSWORD", "SEED_USER_PASSWORD"]) {
+      const password = process.env[key];
+      if (!password || password.length < 12 || ["Admin123!", "Student123!"].includes(password))
+        throw new Error(`온라인 seed: ${key}에 12자 이상의 별도 시연 비밀번호를 설정하세요.`);
+    }
+  }
   const db = createDatabase();
   try {
     await db.sequelize.sync({ force: false });

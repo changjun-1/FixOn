@@ -16,6 +16,7 @@ function createDatabase(env = process.env.NODE_ENV || "development") {
     Category: "category",
     Report: "report",
     WorkOrder: "workOrder",
+    Session: "session",
   }))
     db[name] = require("./" + file)(sequelize);
   const { User, Facility, Category, Report, WorkOrder } = db;
