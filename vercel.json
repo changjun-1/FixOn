@@ -1,5 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "express",
-  "functions": { "app.js": { "includeFiles": "views/**" } }
+  "functions": {
+    "app.js": {
+      "includeFiles": "{views/**,config/supabase-ca.crt}"
+    }
+  }
 }

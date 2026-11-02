@@ -1,6 +1,8 @@
 # FixOn — 시설 고장 신고 및 정비 관리
 
-Vercel 배포 방법: [docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md). 로컬 실행은 아래 기존 명령을 그대로 사용합니다. 배포 시 온라인 DB와 MySQL 세션용 sessions 테이블을 준비합니다.
+현재 배포는 Supabase PostgreSQL의 `fixon` 스키마를 사용합니다. `DATABASE_URL`이 있으면 PostgreSQL에 연결하고, 없으면 기존 MySQL 설정을 사용합니다. 자동 테스트는 로컬 MySQL `fixon_test`를 유지합니다. 운영 시연 계정 비밀번호는 별도 전달 파일을 사용하세요.
+
+현재 Supabase 배포: [docs/SUPABASE_DEPLOY.md](docs/SUPABASE_DEPLOY.md). 기존 MySQL 배포 참고: [docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md). 로컬 실행은 아래 기존 명령을 그대로 사용합니다. 배포 시 온라인 DB와 MySQL 세션용 sessions 테이블을 준비합니다.
 
 교수님 수업의 Express·Nunjucks·Sequelize·MySQL 구조를 바탕으로 만든 웹 프로젝트입니다. 별도 React 서버 없이 Express 한 서버에서 화면과 JSON API를 제공합니다.
 
