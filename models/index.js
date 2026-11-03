@@ -2,10 +2,8 @@ const { Sequelize } = require("sequelize");
 function createDatabase(env = process.env.NODE_ENV || "development") {
   const config = require("../config/config")[env];
   if (!config) throw new Error("지원하지 않는 NODE_ENV");
-  if (!config.url && !config.username) throw new Error(".env에 DB_USER를 설정하세요.");
-  const sequelize = config.url
-    ? new Sequelize(config.url, config)
-    : new Sequelize(config.database, config.username, config.password, config);
+  if (!config.username) throw new Error(".env에 DB_USER를 설정하세요.");
+  const sequelize = new Sequelize(config.database, config.username, config.password, config);
   const db = { sequelize };
   for (const [name, file] of Object.entries({
     User: "user",
