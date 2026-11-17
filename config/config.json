@@ -1,0 +1,5 @@
+{
+  "development": { "database": "fixon", "dialect": "mysql" },
+  "test": { "database": "fixon_test", "dialect": "mysql" },
+  "production": { "database": "fixon", "dialect": "mysql" }
+}

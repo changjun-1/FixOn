@@ -39,13 +39,14 @@
 
 신규 신고의 userId·status·id·시각은 서버에서 정한다. 상태·참조 제한과 트랜잭션 상세는 ERD.md를 따른다.
 
-## 신고 관리 — 8개
+## 신고 관리 — 9개
 
 | Method | Endpoint | 기능 | 권한 | 성공 |
 |---|---|---|---|---|
 | GET | /api/reports | 신고 목록·검색 | 로그인, 일반 회원은 본인 데이터 | 200 목록 |
 | POST | /api/reports | 신고 등록 | 로그인 | 201 신고 |
 | GET | /api/reports/stats | 신고 통계 | 로그인, 일반 회원은 본인 데이터 | 200 통계 |
+| GET | /api/reports/:id/history | 처리 이력·페이지네이션 | 본인 또는 관리자 | 200 목록 |
 | GET | /api/reports/:id | 신고 상세 | 본인 또는 관리자 | 200 신고 + Facility + Category + WorkOrder |
 | PATCH | /api/reports/:id | 신고 수정 | 본인(REPORTED) 또는 관리자 | 200 수정 신고 |
 | DELETE | /api/reports/:id | 신고 삭제 | 본인(REPORTED) 또는 관리자 | 204 본문 없음 |
@@ -399,7 +400,7 @@
 | GET | /api/users/me | 없음 | 로그인 | 200 {id,name,role} |
 | GET | /api/users | 없음 | 관리자 | 200 {data:[{id,name,role}]} |
 
-추가 보조 API GET /api/users/csrf는 인증 없이 200 {csrfToken}을 반환한다. 회원 업무 API 5개와 별개인 보안 토큰 발급 API다. 따라서 업무 30개 + 회원 기능 5개 + 보조 1개 = 전체 등록 API 36개다.
+추가 보조 API GET /api/users/csrf는 인증 없이 200 {csrfToken}을 반환한다. 회원 업무 API 5개와 별개인 보안 토큰 발급 API다. 따라서 업무 31개 + 회원 기능 5개 + 보조 1개 = JSON API 37개다. 소셜 인증 시작·콜백 라우트 4개는 별도로 집계한다.
 
 회원 가입 id는 영문·숫자·밑줄·점·@·하이픈으로 3~100자, name은 1~40자다. 비밀번호는 8자 이상, 문자열 72자 및 UTF-8 72바이트 이하로 검증한다. 요청의 ADMIN 역할은 무시하고 USER로 가입한다. 중복 ID는 409, 잘못된 로그인은 401이다.
 
@@ -446,3 +447,29 @@ PATCH /api/work-orders/1/status에 전송한다. 작업 상태는 COMPLETED, 연
 - 시설 정비 이력: 작업 필드 + 해당 시설의 Report
 
 API 주소의 숫자는 실제 생성된 ID로 바꿔 사용한다. 예시 응답은 형태 설명이며 실제 테스트 결과를 대신하지 않는다.
+
+
+## 처리 이력
+
+`GET /api/reports/:id/history?page=0&size=20&sort=newest`
+
+기존 목록 응답 구조를 사용합니다. actorId·actorName은 실제 로그인 사용자에서 결정하며
+요청 본문으로 지정할 수 없습니다. action은 신고 접수·수정·상태·우선순위,
+정비 생성·수정·배정·상태 변경을 구분합니다. before·after에 변경 전후 상태를 기록하고,
+정비 기록은 workOrderId·담당자·처리 기한·처리 결과를 포함합니다.
+정렬 시 같은 시각의 기록은 ID로 순서를 결정합니다. 타인 신고는 403, 미로그인은 401입니다.
+
+## 소셜 로그인
+
+- `GET /auth/google`, `GET /auth/kakao`: 제공자 인증 화면으로 리다이렉트
+- `GET /auth/google/callback`, `GET /auth/kakao/callback`: state 검사·토큰 교환·회원 조회/생성·세션 재발급
+- 키 미설정·취소·실패 시 로그인 화면에 안전한 안내를 표시합니다.
+- callback의 GET 요청은 세션에 저장한 일회용 state로 검증합니다.
+- 설정 방법과 계정 분리 정책은 SOCIAL_LOGIN.md를 참고합니다.
+
+
+## 교수님 구조의 인증 경로
+
+`POST /auth/login`, `POST /auth/logout`을 제공합니다. 요청·응답·CSRF 규칙은 기존
+`/api/users/login`, `/api/users/logout`과 같습니다. 기존 경로도 동일 처리기를 사용해 화면 호환을 유지합니다.
+로그아웃은 데이터를 변경하므로 GET 경로는 제공하지 않습니다.

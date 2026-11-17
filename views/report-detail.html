@@ -1,1 +1,16 @@
-{% extends 'layout.html' %}{% block scripts %}<script src="/js/detail.js" defer></script>{% endblock %}{% block content %}<a href="/reports">← 신고 목록</a><section class="panel" id="detail">신고를 불러오는 중…</section>{% endblock %}
+{% extends 'layout.html' %}
+
+{% block scripts %}
+<script src="/js/detail.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<a href="/reports">← 신고 목록</a>
+<section class="panel" id="detail">신고를 불러오는 중…</section>
+<section class="panel" aria-labelledby="history-title">
+    <h2 id="history-title">처리 이력</h2>
+    <p class="muted">이력 기능 도입 이후의 변경을 최신순으로 표시합니다.</p>
+    <ol id="report-history" class="history-list" aria-live="polite">이력을 불러오는 중…</ol>
+    <button id="history-more" class="secondary" hidden>이전 이력 더 보기</button>
+</section>
+{% endblock %}

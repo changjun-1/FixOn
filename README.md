@@ -9,7 +9,9 @@
 ## 구현 범위
 
 - 세션 기반 가입·로그인·로그아웃, bcrypt 비밀번호 해시
-- 신고 8개·시설 7개·분류 7개·정비 작업 8개: 업무 라우터 4개, API 30개
+- 카카오·Google 로그인과 최초 로그인 시 일반 계정 자동 생성
+- 신고 상세 처리 이력: 처리자·시각·변경 전후 상태·배정·처리 결과
+- 신고 9개·시설 7개·분류 7개·정비 작업 8개: 업무 라우터 4개, API 31개
 - 일반 사용자 본인 신고 관리, 관리자 전체 업무 관리
 - 검색·페이지네이션·통계·활성 변경·기한 초과 조회
 - 정비 담당자 배정, 상태 전이 검증, 작업 완료와 신고 완료의 트랜잭션 동기화
@@ -106,21 +108,32 @@ npm test
 
 ```text
 fixon/
-├── app.js                  # Express 설정·라우터·오류 처리
-├── server.js               # DB 연결·테이블 준비·listen
-├── config/config.js        # 수업 config.json을 환경 변수 방식으로 확장
-├── models/                 # 수업처럼 Sequelize 모델·관계 정의
-├── routes/                 # 화면·회원·업무 Router
-├── middleware/auth.js      # 세션 인증·관리자 검사·CSRF
-├── public/css/             # 반응형 CSS
-├── public/js/              # 화면 Fetch 호출·폼·목록 처리
+├── app.js                  # 교수님처럼 앱 구성·DB 연결·실행·앱 내보내기
+├── config/
+│   ├── config.json         # 환경별 DB 기본 설정 (비밀번호 없음)
+│   └── config.js           # .env 접속 정보 결합
+├── models/                 # Model 클래스: static init · static associate
+├── passport/
+│   ├── index.js            # serializeUser · deserializeUser · 전략 등록
+│   ├── local.js            # 아이디·비밀번호 로그인
+│   ├── kakao.js            # 카카오 로그인
+│   ├── google.js           # Google 로그인 확장
+│   └── social.js           # 공통 state 검증·소셜 회원 처리
+├── routes/
+│   ├── auth.js             # 로그인·로그아웃·소셜 콜백
+│   ├── user.js             # 회원가입·조회, 기존 인증 API 호환
+│   ├── index.js            # 화면 라우터
+│   └── ...                 # 신고·시설·분류·정비 Router와 helpers
+├── middleware/             # 권한·CSRF·세션 저장소
+├── services/               # 정비 트랜잭션·처리 이력
+├── public/                 # CSS와 브라우저 JavaScript
 ├── views/                  # Nunjucks 화면
-├── scripts/                # DB 준비 SQL·seed·구문 검사
-├── tests/                  # 4개 업무 라우터 테스트·화면 테스트
-└── docs/                   # API·ERD·테스트 결과·보고서 초안
+├── test/                   # 단위·인증·업무 API·화면 테스트
+├── scripts/                # DB 준비·시연 데이터·구문 검사
+└── docs/                   # 구조 비교·API·ERD·테스트·시연 안내
 ```
 
-수업의 `routes/comment.js` 대신 FixOn의 업무 라우터를 구성했습니다. 모델 조회는 수업처럼 라우터에서 Sequelize 메서드를 호출합니다. 별도 Controller·Repository 계층은 도입하지 않았습니다. 공통 입력·조회 함수만 routes/helpers.js에 모았습니다.
+제공된 `step5 (1).zip`을 기준으로 구조를 맞췄습니다. 수업의 `routes/comment.js` 대신 FixOn의 업무 라우터를 구성했습니다. 모델 조회는 수업처럼 라우터에서 Sequelize 메서드를 호출합니다. 별도 Controller·Repository 계층은 도입하지 않았습니다. 복잡한 정비 상태 변경과 트랜잭션·이력 저장은 services/에 분리하고, 공통 입력·조회 함수는 routes/helpers.js에 모았습니다. 관리 화면은 공통 뷰 도구·입력 폼·표 렌더링·이벤트 처리 파일로 나눴습니다.
 
 ## API 요청 예시
 
@@ -163,3 +176,21 @@ console.log(response.status, await response.json());
 - 압축 파일을 다시 풀어 npm ci로 복원할 수 있습니다.
 
 현재 구성은 로컬 대학 과제 시연용입니다. 세션은 메모리에 저장하므로 Node 서버 재시작 시 로그아웃되지만, MySQL의 신고·시설 데이터는 유지됩니다. 작업 사진은 업로드 대신 선택적 HTTP/HTTPS 이미지 URL 입력 방식입니다.
+
+
+## 소셜 로그인 및 처리 이력
+
+카카오·Google 앱 키 발급과 Redirect URI 등록은 [소셜 로그인 설정](docs/SOCIAL_LOGIN.md)을 따릅니다.
+일반·카카오·Google 계정은 각각 별개이며 자동으로 연결하지 않습니다.
+현재 발급한 Google 앱은 테스트 모드입니다. 실제 외부 계정 로그인 성공 여부와 배포 검증은 별도로 확인해야 합니다.
+
+이력 기능 적용 후 서버를 재시작하면 `sync({ force: false })`가 `report_histories` 테이블을 생성합니다.
+기존 신고·정비 테이블과 데이터를 초기화하지 않습니다. 변경 SQL을 자동으로 적용하는 마이그레이션은 아닙니다.
+이력 도입 전 기록은 소급 생성하지 않으며, 이후 앱 API에서 수행한 변경부터 저장합니다.
+신고와 이력은 같은 트랜잭션으로 저장되며 이력 저장 실패 시 업무 변경도 롤백합니다.
+신고 작성자와 관리자만 이력을 조회할 수 있고, 이력을 수정하는 API는 제공하지 않습니다.
+신고 자체를 삭제하면 연결된 이력도 삭제됩니다. 법적 감사 로그 보존 시스템은 아닙니다.
+
+제출 전 시연 순서와 질문 답변은 [심사 시연 안내](docs/DEMO_GUIDE.md)를 참고하세요.
+
+교수님 원본과 파일별 대응 관계·유지한 확장 사항은 [구조 비교](docs/PROFESSOR_STRUCTURE.md)를 참고하세요.

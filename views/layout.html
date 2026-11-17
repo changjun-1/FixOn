@@ -1,1 +1,50 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf }}"><title>{{ title }} · FixOn</title><link rel="stylesheet" href="/css/style.css"><script src="/js/api.js" defer></script>{% block scripts %}{% endblock %}</head><body><aside><a class="brand" href="/">Fix<span>On</span><small>시설을 다시, 일상으로</small></a><nav><a href="/">대시보드</a><a href="/reports">고장 신고</a><a href="/facilities">시설 관리</a><a href="/categories">고장 분류</a>{% if user.role == 'ADMIN' %}<a href="/work-orders">정비 작업</a><a href="/users">회원 목록</a>{% endif %}</nav><div class="account">{% if user %}<b>{{ user.name }}</b><small>{% if user.role == 'ADMIN' %}관리자{% else %}일반 사용자{% endif %} · {{ user.id }}</small><button id="logout" class="secondary">로그아웃</button>{% else %}<a href="/login">로그인</a>{% endif %}</div></aside><main><header><span>FACILITY OPERATIONS</span><span>FixOn · 캠퍼스 시설 관리</span></header><section class="heading"><p class="eyebrow">함께 만드는 쾌적한 캠퍼스</p><h1>{{ title }}</h1></section><div id="notice" role="status" aria-live="polite"></div>{% block content %}{% endblock %}<footer>FixOn · 시설 고장 신고 및 처리 시스템</footer></main></body></html>
+<!doctype html>
+{% from 'icons.html' import icon %}
+<html lang="ko">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf }}">
+        <title>{{ title }} · FixOn</title>
+        <link rel="stylesheet" href="/css/style.css">
+        <script src="/js/api.js" defer></script>
+        {% block scripts %}
+
+        {% endblock %}
+    </head>
+
+    <body class="{% if user and not authPage %}workspace-page{% else %}auth-page{% endif %}">
+        {% if user and not authPage %}
+        <aside>
+            <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">F</span><span class="brand-name">FixOn<small>캠퍼스 시설 관리</small></span></a>
+            <div class="workspace-label">WORKSPACE</div>
+            <nav aria-label="주요 메뉴">
+                <a href="/"><span class="nav-icon">{{ icon('dashboard') }}</span>대시보드</a>
+                <a href="/reports"><span class="nav-icon">{{ icon('reports') }}</span>고장 신고</a>
+                <a href="/facilities"><span class="nav-icon">{{ icon('facilities') }}</span>시설 관리</a>
+                <a href="/categories"><span class="nav-icon">{{ icon('categories') }}</span>고장 분류</a>{% if user.role == 'ADMIN' %}<a href="/work-orders"><span class="nav-icon">{{ icon('work') }}</span>정비 작업</a>
+                <a href="/users"><span class="nav-icon">{{ icon('users') }}</span>회원 목록</a>{% endif %}
+            </nav>
+            <div class="account"><div class="account-profile"><span class="avatar" aria-hidden="true">{{ user.name | first }}</span><div><b>{{ user.name }}</b><small>{% if user.role == 'ADMIN' %}워크스페이스 관리자{% else %}일반 사용자{% endif %}</small></div></div>
+                <button id="logout" class="secondary">로그아웃 <span aria-hidden="true">↗</span></button>
+            </div>
+        </aside>
+        {% endif %}
+        <main class="{% if user and not authPage %}workspace-main{% else %}auth-main{% endif %}">
+            {% if user and not authPage %}
+            <header><span>워크스페이스 <span class="breadcrumb-separator">/</span> {{ title }}</span><span class="workspace-status"><i aria-hidden="true"></i> 함께 관리하는 캠퍼스</span></header>
+            <section class="heading">
+                <p class="eyebrow">CAMPUS WORKSPACE</p>
+                <h1>{{ title }}</h1>
+            </section>
+            {% endif %}
+            <div id="notice" role="status" aria-live="polite"></div>
+            {% block content %}
+
+            {% endblock %}
+            <footer>FixOn <span aria-hidden="true">·</span> 시설을 다시, 일상으로</footer>
+        </main>
+    </body>
+
+</html>

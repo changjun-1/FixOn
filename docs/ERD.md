@@ -2,7 +2,7 @@
 
 배포용 추가 테이블 `sessions`: sid VARCHAR(128) PK, data MEDIUMTEXT NOT NULL, expires DATETIME NOT NULL (인덱스). 서버 간 로그인 세션 공유에 사용하며 업무 라우터·API 개수에는 포함하지 않는다. 로컬은 기존 메모리 세션을 기본으로 유지한다.
 
-MySQL + Sequelize. 모델은 models/에서 정의하며 models/index.js에서 관계를 연결한다. 테이블은 모두 createdAt·updatedAt DATETIME을 가진다. 업무 테이블의 id는 INTEGER AUTO_INCREMENT 기본 키다.
+MySQL + Sequelize. 모델은 models/에서 정의하며 models/index.js에서 관계를 연결한다. 업무 테이블은 createdAt·updatedAt DATETIME을 가지며, report_histories는 createdAt만 가진다. 업무 테이블의 id는 INTEGER AUTO_INCREMENT 기본 키다.
 
 ```mermaid
 erDiagram
@@ -10,6 +10,7 @@ erDiagram
     FACILITIES ||--o{ REPORTS : receives
     CATEGORIES ||--o{ REPORTS : classifies
     REPORTS ||--o| WORK_ORDERS : creates
+    REPORTS ||--o{ REPORT_HISTORIES : records
     USERS o|--o{ WORK_ORDERS : assigned_to
 ```
 
@@ -78,3 +79,19 @@ erDiagram
 작업 생성·작업 변경·신고 수정·삭제는 부모 신고 행을 먼저 SELECT FOR UPDATE로 잠근다. 작업 변경 시 해당 작업도 잠근다. 동일한 잠금 순서로 동시 요청 간 충돌을 줄인다. 작업 생성 시 UNIQUE 제약도 함께 적용한다. 작업 상태와 신고 상태 변경은 하나의 Sequelize 트랜잭션으로 커밋하거나 롤백한다.
 
 서비스용 DB는 fixon, 테스트 DB는 fixon_test이며 같은 MySQL 서버를 사용할 수 있다. 테스트 초기화는 이름 검사 후 fixon_test에서만 실행한다.
+
+
+## report_histories
+
+| 필드 | 타입·의미 |
+|---|---|
+| id | INTEGER AUTO_INCREMENT PK |
+| reportId | reports.id FK, NOT NULL, 신고 삭제 시 CASCADE |
+| workOrderId | INTEGER NULL, 관련 정비 번호 스냅샷 |
+| actorId, actorName | VARCHAR(100), VARCHAR(40), 변경 당시 처리자 스냅샷 |
+| action | VARCHAR(40), 처리 종류 |
+| before, after | JSON, 변경 전후 업무 상태, before는 최초 생성 시 NULL |
+| createdAt | DATETIME, 기록 시각 |
+
+(reportId, id) 인덱스를 사용한다. 처리자 이름이 나중에 변경되어도 변경 당시 이름을 보존한다.
+기존 기록은 소급 생성하지 않는다. DB를 직접 수정한 내용은 자동 기록하지 않는다.
