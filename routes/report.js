@@ -1,3 +1,4 @@
+const { workRelations } = require("../services/workRelations");
 const { Router } = require("express");
 const { login, admin } = require("../middleware/auth");
 const { Op, wrap, text, id, enumeration, get, list, keyword, fail } = require("./helpers");
@@ -114,11 +115,14 @@ function createRouter(db) {
             const row = await get(db.Report, req.params.id, {
                 include: [...include, {
                     model: db.WorkOrder,
-                    include: [{ model: db.User, as: "assignee", attributes: ["id", "name"] }],
+                    separate: true,
+                    include: [{ model: db.User, as: "assignee", attributes: ["id", "name"] }, ...workRelations(db)],
                 }],
             });
             own(req, row);
-            res.json(row);
+            const detail = row.toJSON();
+            detail.WorkOrders.sort((first, second) => first.id - second.id);
+            res.json({ ...detail, WorkOrder: detail.WorkOrders[0] || null });
         }),
     );
     r.patch(

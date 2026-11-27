@@ -14,7 +14,7 @@ function createRouter() {
         ["reports", "고장 신고", "reports", false],
         ["facilities", "시설 관리", "facilities", false],
         ["categories", "고장 분류", "categories", false],
-        ["work-orders", "정비 작업", "workOrders", true],
+        ["work-orders", "정비 작업", "workOrders", false],
         ["users", "회원 목록", "users", true],
     ])
         r.get("/" + url, (req, res) => {

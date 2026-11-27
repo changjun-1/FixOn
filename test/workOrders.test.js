@@ -4,12 +4,49 @@ const payload = () => ({
     dueAt: "2030-12-01T09:00:00Z",
 });
 
+test("배정, 선행 작업, 부품 사용, 검수가 기존 API에서 연결된다", async () => {
+    const first = await work();
+    const second = await work();
+    const firstUrl = "/api/work-orders/" + first.id;
+    const secondUrl = "/api/work-orders/" + second.id;
+    expect((await c.admin.patch(firstUrl + "/assignee", { assigneeId: "student", supportIds: ["other"] })).status).toBe(200);
+    expect((await c.admin.patch(secondUrl + "/assignee", { assigneeId: "student" })).status).toBe(200);
+    expect((await c.admin.patch(secondUrl, { prerequisiteIds: [first.id] })).status).toBe(200);
+    expect((await c.admin.patch(firstUrl, { prerequisiteIds: [second.id] })).status).toBe(409);
+    expect((await c.student.patch(secondUrl + "/status", { status: "IN_PROGRESS" })).status).toBe(409);
+    expect((await c.other.get("/api/work-orders")).body.data.map((item) => item.id)).toEqual([first.id]);
+    expect((await c.other.get(secondUrl)).status).toBe(403);
+    expect((await c.admin.patch(firstUrl, { stockReceipt: { code: "LAMP", name: "램프", quantity: 2 } })).status).toBe(200);
+    const part = await c.db.Part.findOne({ where: { code: "LAMP" } });
+    expect((await c.other.patch(firstUrl + "/status", { status: "IN_PROGRESS" })).status).toBe(200);
+    const submission = { status: "SUBMITTED", resolutionNote: "교체 완료" };
+    expect((await c.other.patch(firstUrl + "/status", {
+        ...submission, parts: [{ partId: part.id, quantity: 1 }, { partId: part.id, quantity: 2 }],
+    })).status).toBe(409);
+    expect((await part.reload()).stock).toBe(2);
+    expect(await c.db.WorkPartUsage.count()).toBe(0);
+    expect((await c.other.patch(firstUrl + "/status", {
+        ...submission, parts: [{ partId: part.id, quantity: 1 }],
+    })).status).toBe(200);
+    expect((await c.other.patch(firstUrl + "/status", { status: "COMPLETED" })).status).toBe(403);
+    expect((await c.admin.patch(firstUrl + "/status", { status: "IN_PROGRESS", comment: "작동 확인 필요" })).status).toBe(200);
+    expect((await c.student.patch(firstUrl + "/status", submission)).status).toBe(200);
+    expect((await c.admin.patch(firstUrl + "/status", { status: "COMPLETED" })).status).toBe(200);
+    expect((await c.student.patch(secondUrl + "/status", { status: "IN_PROGRESS" })).status).toBe(200);
+    const detail = await c.student.get("/api/reports/" + c.report.id);
+    expect(detail.status).toBe(200);
+    expect(detail.body.WorkOrders[0].partsUsed[0].part.name).toBe("램프");
+    expect(detail.body.WorkOrders[0].reviews.map((item) => item.decision).sort()).toEqual(["APPROVED", "REJECTED"]);
+    expect((await part.reload()).stock).toBe(1);
+    expect(await c.db.StockMovement.count()).toBe(2);
+});
+
 async function work() {
     const r = await c.admin.post("/api/work-orders", payload());
     expect(r.status).toBe(201);
     return r.body;
 }
-test("정상 생성·조회·수정과 중복 생성 거절", async () => {
+test("정상 생성·조회·수정과 신고별 여러 작업 조회", async () => {
     const row = await work();
     expect((await c.admin.get("/api/work-orders/" + row.id)).body.Report.id).toBe(c.report.id);
     expect(
@@ -19,16 +56,20 @@ test("정상 생성·조회·수정과 중복 생성 거절", async () => {
             })
         ).status,
     ).toBe(200);
-    expect((await c.admin.post("/api/work-orders", payload())).status).toBe(409);
-    expect(await c.db.WorkOrder.count()).toBe(1);
+    const second = await work();
+    await c.admin.patch("/api/work-orders/" + second.id + "/assignee", { assigneeId: "student" });
+    const detail = await c.student.get("/api/reports/" + c.report.id);
+    expect(detail.body.WorkOrders.map((item) => item.id)).toEqual([row.id, second.id]);
+    expect(detail.body.WorkOrders[1].assignee.name).toBe("학생");
+    expect(detail.body.WorkOrder.id).toBe(row.id);
 });
 test("없는 신고에 연결하는 작업은 404", async () => {
     expect((await c.admin.post("/api/work-orders", { ...payload(), reportId: 99999 })).status).toBe(
         404,
     );
 });
-test("일반 사용자 정비 API 접근은 403", async () => {
-    expect((await c.student.get("/api/work-orders")).status).toBe(403);
+test("일반 사용자는 본인 배정만 조회하고 정비 작업을 만들 수 없다", async () => {
+    expect((await c.student.get("/api/work-orders")).body.data).toEqual([]);
     expect((await c.student.post("/api/work-orders", payload())).status).toBe(403);
 });
 test("없는 담당자 거절·유효 담당자 배정", async () => {
@@ -44,15 +85,16 @@ test("잘못된 전이는 409, 완료 시 처리 결과와 신고 상태 동기�
     expect((await c.admin.patch(url + "/status", { status: "COMPLETED" })).status).toBe(409);
     await c.admin.patch(url + "/assignee", { assigneeId: "student" });
     expect((await c.admin.patch(url + "/status", { status: "IN_PROGRESS" })).status).toBe(200);
-    expect((await c.admin.patch(url + "/status", { status: "COMPLETED" })).status).toBe(400);
+    expect((await c.admin.patch(url + "/status", { status: "SUBMITTED" })).status).toBe(400);
     expect(
         (
             await c.admin.patch(url + "/status", {
-                status: "COMPLETED",
+                status: "SUBMITTED",
                 resolutionNote: "전원 장치 교체",
             })
         ).status,
     ).toBe(200);
+    expect((await c.admin.patch(url + "/status", { status: "COMPLETED" })).status).toBe(200);
     expect((await c.db.Report.findByPk(c.report.id)).status).toBe("RESOLVED");
     expect((await c.db.WorkOrder.findByPk(row.id)).completedAt).not.toBeNull();
     expect((await c.admin.patch(url + "/status", { status: "IN_PROGRESS" })).status).toBe(409);
@@ -93,11 +135,26 @@ test("취소·재개는 신고 상태를 보존하고 담당자를 초기화한�
     expect(reopened.body.assigneeId).toBeNull();
     expect((await c.db.Report.findByPk(c.report.id)).status).toBe("CONFIRMED");
 });
-test("동일 신고 동시 작업 생성도 하나만 성공한다", async () => {
+test("동일 신고 동시 작업 생성이 각각 저장된다", async () => {
     const results = await Promise.all([
         c.admin.post("/api/work-orders", payload()),
         c.admin.post("/api/work-orders", payload()),
     ]);
-    expect(results.map((x) => x.status).sort()).toEqual([201, 409]);
-    expect(await c.db.WorkOrder.count()).toBe(1);
+    expect(results.map((x) => x.status).sort()).toEqual([201, 201]);
+    expect(await c.db.WorkOrder.count()).toBe(2);
+});
+
+test("다른 미완료 작업이 있으면 신고를 해결 완료로 닫지 않는다", async () => {
+    const first = await work();
+    const second = await work();
+    for (const [item, expected] of [[first, "IN_PROGRESS"], [second, "RESOLVED"]]) {
+        const url = "/api/work-orders/" + item.id;
+        expect((await c.admin.patch(url + "/assignee", { assigneeId: "student" })).status).toBe(200);
+        expect((await c.admin.patch(url + "/status", { status: "IN_PROGRESS" })).status).toBe(200);
+        expect((await c.admin.patch(url + "/status", {
+            status: "SUBMITTED", resolutionNote: "처리 완료",
+        })).status).toBe(200);
+        expect((await c.admin.patch(url + "/status", { status: "COMPLETED" })).status).toBe(200);
+        expect((await c.db.Report.findByPk(c.report.id)).status).toBe(expected);
+    }
 });

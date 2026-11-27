@@ -23,7 +23,7 @@
                 <a href="/"><span class="nav-icon">{{ icon('dashboard') }}</span>대시보드</a>
                 <a href="/reports"><span class="nav-icon">{{ icon('reports') }}</span>고장 신고</a>
                 <a href="/facilities"><span class="nav-icon">{{ icon('facilities') }}</span>시설 관리</a>
-                <a href="/categories"><span class="nav-icon">{{ icon('categories') }}</span>고장 분류</a>{% if user.role == 'ADMIN' %}<a href="/work-orders"><span class="nav-icon">{{ icon('work') }}</span>정비 작업</a>
+                <a href="/categories"><span class="nav-icon">{{ icon('categories') }}</span>고장 분류</a><a href="/work-orders"><span class="nav-icon">{{ icon('work') }}</span>{% if user.role == 'ADMIN' %}정비 작업{% else %}내 정비 작업{% endif %}</a>{% if user.role == 'ADMIN' %}
                 <a href="/users"><span class="nav-icon">{{ icon('users') }}</span>회원 목록</a>{% endif %}
             </nav>
             <div class="account"><div class="account-profile"><span class="avatar" aria-hidden="true">{{ user.name | first }}</span><div><b>{{ user.name }}</b><small>{% if user.role == 'ADMIN' %}워크스페이스 관리자{% else %}일반 사용자{% endif %}</small></div></div>

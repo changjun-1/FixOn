@@ -28,14 +28,15 @@ test("생성·배정·진행·완료 이력과 상태는 같은 순서로 저장
     expect((await context.admin.patch(url + "/assignee", { assigneeId: "student" })).status).toBe(200);
     expect((await context.admin.patch(url + "/status", { status: "IN_PROGRESS" })).status).toBe(200);
     expect((await context.admin.patch(url + "/status", {
-        status: "COMPLETED", resolutionNote: "부품 교체 완료",
+        status: "SUBMITTED", resolutionNote: "부품 교체 완료",
     })).status).toBe(200);
+    expect((await context.admin.patch(url + "/status", { status: "COMPLETED" })).status).toBe(200);
     const history = await context.student.get(`/api/reports/${context.report.id}/history?sort=oldest&size=2`);
-    expect(history.body.pagination.total).toBe(4);
+    expect(history.body.pagination.total).toBe(5);
     expect(history.body.data.map((item) => item.action)).toEqual(["WORK_CREATED", "WORK_ASSIGNED"]);
     const last = await context.student.get(`/api/reports/${context.report.id}/history`);
     expect(last.body.data[0]).toMatchObject({
-        actorId: "admin", before: { status: "IN_PROGRESS", reportStatus: "IN_PROGRESS" },
+        actorId: "admin", before: { status: "SUBMITTED", reportStatus: "IN_PROGRESS" },
         after: { status: "COMPLETED", reportStatus: "RESOLVED", resolutionNote: "부품 교체 완료" },
     });
     const count = await context.db.ReportHistory.count();

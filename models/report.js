@@ -26,7 +26,7 @@ module.exports = class Report extends Model {
         this.belongsTo(db.User, { foreignKey: "userId", as: "author" });
         this.belongsTo(db.Facility, { foreignKey: "facilityId" });
         this.belongsTo(db.Category, { foreignKey: "categoryId" });
-        this.hasOne(db.WorkOrder, { foreignKey: { name: "reportId", allowNull: false }, onDelete: "RESTRICT" });
+        this.hasMany(db.WorkOrder, { foreignKey: { name: "reportId", allowNull: false }, onDelete: "RESTRICT" });
         this.hasMany(db.ReportHistory, { foreignKey: { name: "reportId", allowNull: false }, onDelete: "CASCADE" });
     }
 };

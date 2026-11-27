@@ -125,6 +125,7 @@ if (require.main === module) {
         try {
             await database.sequelize.authenticate();
             await database.sequelize.sync({ force: false });
+            await require("./scripts/migrate-work-orders")(database.sequelize);
             const server = await new Promise((resolve, reject) => {
                 const listener = app.listen(app.get("port"), "127.0.0.1", () => resolve(listener));
                 listener.once("error", reject);

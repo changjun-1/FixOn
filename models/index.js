@@ -12,6 +12,12 @@ function createDatabase(env = process.env.NODE_ENV || "development", isolated = 
         Category: "category",
         Report: "report",
         WorkOrder: "workOrder",
+        WorkAssignment: "workAssignment",
+        WorkDependency: "workDependency",
+        Part: "part",
+        WorkPartUsage: "workPartUsage",
+        StockMovement: "stockMovement",
+        WorkReview: "workReview",
         Session: "session",
         ReportHistory: "reportHistory",
     })) {

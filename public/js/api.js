@@ -7,6 +7,7 @@ window.FixOn = {
         REJECTED: "반려",
         OPEN: "작업 대기",
         ASSIGNED: "담당자 배정",
+        SUBMITTED: "검수 대기",
         COMPLETED: "작업 완료",
         CANCELLED: "취소",
         LOW: "낮음",
@@ -77,6 +78,21 @@ window.FixOn = {
         return rows.length
             ? `<table><thead><tr>${headers.map((h) => `<th>${this.escape(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((v) => `<td>${v}</td>`).join("")}</tr>`).join("")}</tbody></table>`
             : '<div class="empty">등록된 데이터가 없습니다.</div>';
+    },
+    workRelations(work) {
+        const workers = (work.assignments || []).map((item) =>
+            `${item.user?.name || item.userId} (${item.role === "LEAD" ? "담당" : "지원"})`);
+        const prerequisites = (work.dependencies || []).map((item) =>
+            `#${item.prerequisiteId} · ${this.labels[item.prerequisite?.status] || "대기"}`);
+        const parts = (work.partsUsed || []).map((item) => `${item.part?.name || item.partId} ${item.quantity}개`);
+        const reviews = [...(work.reviews || [])].sort((a, b) => a.id - b.id).map((item) =>
+            `${item.decision === "APPROVED" ? "승인" : "반려"} · ${item.reviewer?.name || item.reviewerId}${item.comment ? " · " + item.comment : ""}`);
+        const rows = [
+            ["배정 인원", workers], ["선행 작업", prerequisites],
+            ["사용 부품", parts], ["검수 기록", reviews],
+        ];
+        return `<dl>${rows.map(([label, values]) =>
+            `<dt>${label}</dt><dd>${values.length ? values.map((value) => this.escape(value)).join("<br>") : "—"}</dd>`).join("")}</dl>`;
     },
 };
 document.addEventListener("DOMContentLoaded", () => {

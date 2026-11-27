@@ -1,7 +1,6 @@
 const passport = require("passport");
 const local = require("./local");
 const kakao = require("./kakao");
-const google = require("./google");
 
 module.exports = (db = require("../models"), instance = passport) => {
     instance.serializeUser((user, done) => done(null, user.id));
@@ -15,6 +14,5 @@ module.exports = (db = require("../models"), instance = passport) => {
     });
     local(instance, db);
     kakao(instance, db);
-    google(instance, db);
     return instance;
 };

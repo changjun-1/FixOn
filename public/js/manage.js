@@ -24,7 +24,7 @@
         mode = "";
     const { esc, options, statuses, select, field } = FixOnManagement;
     const reportStates = ["REPORTED", "CONFIRMED", "IN_PROGRESS", "RESOLVED", "REJECTED"],
-        workStates = ["OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+        workStates = ["OPEN", "ASSIGNED", "IN_PROGRESS", "SUBMITTED", "COMPLETED", "CANCELLED"];
     function open(title, html, actionMode, record = null, endpoint = "") {
         mode = actionMode;
         editing = record;
@@ -55,7 +55,7 @@
                 f.all("/api/facilities"),
                 f.all("/api/categories"),
             ]);
-        if (kind === "workOrders") users = (await f.api("/api/users")).data;
+        if (kind === "workOrders" && admin) users = (await f.api("/api/users")).data;
     }
     function form(record = null) {
         FixOnManagement.form({ kind, facilities, categories, open, editor }, record);
@@ -92,6 +92,16 @@
                     summary.className = "muted";
                     document.querySelector(".heading").append(summary);
                 }
+                let inventory = document.getElementById("work-inventory");
+                if (!inventory) {
+                    inventory = document.createElement("p");
+                    inventory.id = "work-inventory";
+                    inventory.className = "muted";
+                    summary.after(inventory);
+                }
+                inventory.textContent = s.parts.length
+                    ? "부품 재고 · " + s.parts.map((part) => `#${part.id} ${part.name} ${part.stock}개`).join(" · ")
+                    : "등록된 부품이 없습니다.";
                 summary.textContent = `전체 ${s.total}건 · 진행 중 ${s.IN_PROGRESS}건 · 완료 ${s.COMPLETED}건 · 기한 초과 ${s.overdue}건`;
             }
         } catch (e) {
@@ -174,24 +184,34 @@
                         {
                             OPEN: ["CANCELLED"],
                             ASSIGNED: ["IN_PROGRESS", "CANCELLED"],
-                            IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+                            IN_PROGRESS: ["SUBMITTED", "CANCELLED"],
+                            SUBMITTED: ["COMPLETED", "IN_PROGRESS"],
                             CANCELLED: ["OPEN"],
                         }[record.status] || [];
+                if (kind === "workOrders" && !admin)
+                    values = values.filter((value) => ["IN_PROGRESS", "SUBMITTED"].includes(value) && record.status !== "SUBMITTED");
                 if (!values.length)
                     throw new Error(
                         "직접 변경할 수 있는 상태가 없습니다. 정비 작업에서 진행하세요.",
                     );
                 open(
-                    "상태 변경",
-                    field("status", "변경할 상태", "select", statuses(values)) +
+                    record.status === "SUBMITTED" ? "작업 검수" : "상태 변경",
+                    field("status", record.status === "SUBMITTED" ? "검수 결과" : "변경할 상태", "select",
+                        record.status === "SUBMITTED"
+                            ? [["COMPLETED", "승인"], ["IN_PROGRESS", "반려 · 재작업"]]
+                            : statuses(values)) +
                         (kind === "workOrders"
                             ? field(
                                   "resolutionNote",
-                                  "처리 결과 (완료 시 필수)",
+                                  "처리 결과 (제출 시 필수)",
                                   "textarea",
                                   null,
                                   false,
-                              )
+                              ) + (record.status === "SUBMITTED"
+                                  ? field("comment", "검수 의견 (반려 시 필수)", "textarea", null, false)
+                                  : record.status === "IN_PROGRESS"
+                                      ? field("partsInput", "사용 부품 (번호:수량, 쉼표로 구분)", "text", null, false)
+                                      : "")
                             : ""),
                     "save",
                     record,
@@ -201,17 +221,31 @@
             if (action === "assignee") {
                 await references();
                 open(
-                    "담당자 지정 (기록용)",
+                    "담당자와 지원 인력 배정",
                     field(
                         "assigneeId",
                         "담당자",
                         "select",
                         users.map((u) => [u.id, u.name]),
-                    ),
+                    ) + field("supportInput", "지원 인력 ID (쉼표로 구분)", "text", null, false),
                     "save",
                     record,
                     "/assignee",
                 );
+                editor.elements.supportInput.value = (record.assignments || [])
+                    .filter((item) => item.role === "SUPPORT").map((item) => item.userId).join(", ");
+            }
+            if (action === "dependencies") {
+                open("선행 작업 지정",
+                    field("dependenciesInput", "같은 신고의 선행 작업 번호 (쉼표로 구분)", "text", null, false),
+                    "save", record);
+                editor.elements.dependenciesInput.value = (record.dependencies || [])
+                    .map((item) => item.prerequisiteId).join(", ");
+            }
+            if (action === "stock") {
+                open("부품 입고",
+                    field("stockCode", "부품 코드") + field("stockName", "부품 이름") +
+                    field("stockQuantity", "수량", "number"), "save", record);
             }
             if (action === "related-reports")
                 await related(base + "/" + record.id + "/reports", "관련 신고");
@@ -235,7 +269,7 @@
                 const r = await f.api(base + "/" + record.id);
                 document.getElementById("related-title").textContent = `정비 작업 #${r.id}`;
                 document.getElementById("related-content").innerHTML =
-                    `<dl><dt>신고</dt><dd>${esc(r.Report?.title)}</dd><dt>상태</dt><dd>${f.badge(r.status)}</dd><dt>담당자</dt><dd>${esc(r.assignee?.name || "미배정")}</dd><dt>기한</dt><dd>${f.date(r.dueAt)}</dd><dt>처리 결과</dt><dd class="description">${esc(r.resolutionNote || "미기록")}</dd><dt>완료 일시</dt><dd>${f.date(r.completedAt)}</dd></dl>`;
+                    `<dl><dt>신고</dt><dd>${esc(r.Report?.title)}</dd><dt>상태</dt><dd>${f.badge(r.status)}</dd><dt>담당자</dt><dd>${esc(r.assignee?.name || "미배정")}</dd><dt>기한</dt><dd>${f.date(r.dueAt)}</dd><dt>처리 결과</dt><dd class="description">${esc(r.resolutionNote || "미기록")}</dd><dt>완료 일시</dt><dd>${f.date(r.completedAt)}</dd></dl>${f.workRelations(r)}`;
                 document.getElementById("related").hidden = false;
             }
         } catch (error) {
@@ -250,6 +284,27 @@
         b.disabled = true;
         try {
             const data = Object.fromEntries(new FormData(editor));
+            const split = (value) => value.split(",").map((item) => item.trim()).filter(Boolean);
+            if (data.supportInput !== undefined) {
+                data.supportIds = split(data.supportInput);
+                delete data.supportInput;
+            }
+            if (data.dependenciesInput !== undefined) {
+                data.prerequisiteIds = split(data.dependenciesInput);
+                delete data.dependenciesInput;
+            }
+            if (data.partsInput !== undefined) {
+                if (data.status === "SUBMITTED") data.parts = split(data.partsInput).map((item) => {
+                    const [partId, quantity, extra] = item.split(":").map((value) => value.trim());
+                    if (extra !== undefined || !partId || !quantity) throw new Error("부품은 번호:수량 형식으로 입력하세요.");
+                    return { partId, quantity };
+                });
+                delete data.partsInput;
+            }
+            if (data.stockCode !== undefined) {
+                data.stockReceipt = { code: data.stockCode, name: data.stockName, quantity: data.stockQuantity };
+                for (const key of ["stockCode", "stockName", "stockQuantity"]) delete data[key];
+            }
             for (const k of ["facilityId", "categoryId", "reportId"])
                 if (data[k]) data[k] = Number(data[k]);
             if (data.active !== undefined) data.active = data.active === "true";
@@ -260,10 +315,14 @@
                 mode === "create-work"
                     ? "/api/work-orders"
                     : base + (editing ? "/" + editing.id + suffix : "");
-            await f.api(url, {
+            const saved = await f.api(url, {
                 method: editing ? "PATCH" : "POST",
                 body: JSON.stringify(data),
             });
+            if (kind === "reports" && !editing && mode !== "create-work") {
+                location.href = "/reports/" + encodeURIComponent(saved.id);
+                return;
+            }
             panel.hidden = true;
             f.notice("저장했습니다.");
             await load();
@@ -292,6 +351,15 @@
         }
     };
     const filterForm = document.getElementById("filters");
+    const query = new URLSearchParams(location.search);
+    const linkedReport = kind === "workOrders" && admin ? query.get("reportId") : null;
+    if (linkedReport && /^[1-9][0-9]*$/.test(linkedReport)) {
+        const heading = document.querySelector(".panel-heading p");
+        const back = document.createElement("a");
+        back.href = "/reports/" + linkedReport;
+        back.textContent = "신고 #" + linkedReport + " 상세로 돌아가기";
+        heading.replaceChildren(back);
+    }
     if (kind !== "users") {
         try {
             await references();
@@ -324,13 +392,21 @@
             if (kind === "workOrders")
                 html +=
                     select("status", "전체 상태", statuses(workStates)) +
-                    select("assigneeId", "전체 담당자", options(users));
+                    (admin ? select("assigneeId", "전체 담당자", options(users)) : "");
             filterForm.innerHTML =
                 html +
                 '<button>조회</button><button type="reset" class="secondary">초기화</button>' +
                 (kind === "workOrders"
                     ? '<a class="button" href="/work-orders?overdue=true">기한 초과만 보기</a>'
                     : "");
+            if (linkedReport && /^[1-9][0-9]*$/.test(linkedReport)) {
+                const field = document.createElement("input");
+                field.type = "hidden";
+                field.name = "reportId";
+                field.defaultValue = linkedReport;
+                filterForm.append(field);
+                filters.reportId = linkedReport;
+            }
         } catch (e) {
             f.notice(e.message, true);
         }
@@ -342,7 +418,7 @@
         load();
     });
     filterForm.addEventListener("reset", () => {
-        filters = {};
+        filters = filterForm.elements.reportId ? { reportId: filterForm.elements.reportId.value } : {};
         page = 0;
         load();
     });
@@ -354,4 +430,6 @@
         }
     }
     await load();
+    if (kind === "reports" && query.get("new") === "1")
+        document.getElementById("new-button").click();
 })();

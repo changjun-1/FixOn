@@ -57,25 +57,29 @@
             );
         if (kind === "workOrders")
             return f.table(
-                ["번호", "신고", "상태", "담당자", "처리 기한", "관리"],
+                ["번호", "신고", "상태", "배정 인원", "선행 작업", "처리 기한", "관리"],
                 rows.map((r) => [
                     esc(r.id),
                     `<a href="/reports/${r.reportId}">#${esc(r.reportId)} ${esc(r.Report?.title)}</a>`,
                     f.badge(r.status),
-                    esc(r.assignee?.name || "미배정"),
+                    esc(r.assignments?.length ? r.assignments.map((item) => item.user?.name).join(", ") : r.assignee?.name || "미배정"),
+                    r.dependencies?.length
+                        ? r.dependencies.map((item) =>
+                            `#${esc(item.prerequisiteId)} ${item.prerequisite?.status === "COMPLETED" ? "승인" : "대기"}`).join("<br>")
+                        : "—",
                     f.date(r.dueAt) +
                         (!["COMPLETED", "CANCELLED"].includes(r.status) &&
                         new Date(r.dueAt) < new Date()
                             ? ' <span class="badge URGENT">기한 초과</span>'
                             : ""),
                     button("work-detail", r.id, "상세") +
-                        (!["COMPLETED", "CANCELLED"].includes(r.status)
-                            ? button("edit", r.id, "수정")
+                        (admin && !["COMPLETED", "CANCELLED", "SUBMITTED"].includes(r.status)
+                            ? button("edit", r.id, "수정") + button("stock", r.id, "부품 입고")
                             : "") +
-                        (["OPEN", "ASSIGNED"].includes(r.status)
-                            ? button("assignee", r.id, "배정")
+                        (admin && ["OPEN", "ASSIGNED"].includes(r.status)
+                            ? button("assignee", r.id, "배정") + button("dependencies", r.id, "선행 작업")
                             : "") +
-                        (r.status !== "COMPLETED" ? button("status", r.id, "상태") : ""),
+                        ((admin ? r.status !== "COMPLETED" : ["ASSIGNED", "IN_PROGRESS"].includes(r.status)) ? button("status", r.id, r.status === "SUBMITTED" ? "검수" : "상태") : ""),
                 ]),
             );
         return f.table(

@@ -8,7 +8,7 @@ test("일반 사용자 주요 화면이 HTML로 렌더링된다", async () => {
     }
 });
 test("관리자 화면 렌더링·일반 사용자 관리자 화면 차단", async () => {
-    for (const url of ["/work-orders", "/users"]) {
+    for (const url of ["/users"]) {
         expect((await c.admin.get(url)).status).toBe(200);
         expect((await c.student.get(url)).status).toBe(403);
     }

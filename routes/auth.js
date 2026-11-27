@@ -33,14 +33,14 @@ function createRouter(db, passport) {
     router.post("/logout", login, logoutHandler);
     router.get("/:provider", (req, res, next) => {
         const provider = req.params.provider;
-        if (!["google", "kakao"].includes(provider)) return res.sendStatus(404);
+        if (provider !== "kakao") return res.sendStatus(404);
         if (!settings(provider) || !passport._strategy(provider))
             return res.redirect("/login?social=unavailable");
         passport.authenticate(provider)(req, res, next);
     });
     router.get("/:provider/callback", (req, res, next) => {
         const provider = req.params.provider;
-        if (!["google", "kakao"].includes(provider)) return res.sendStatus(404);
+        if (provider !== "kakao") return res.sendStatus(404);
         const valid = validState(req.session.oauth, provider, req.query.state);
         if (!valid || req.query.error || typeof req.query.code !== "string" || !req.query.code) {
             delete req.session.oauth;

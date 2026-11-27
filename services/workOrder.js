@@ -1,9 +1,13 @@
 const { workSnapshot, recordHistory } = require("./reportHistory");
 
+const { checkDependencies, useParts } = require("./workRelations");
+const { fail, text } = require("../routes/helpers");
+
 const transitions = {
     OPEN: ["CANCELLED"],
     ASSIGNED: ["IN_PROGRESS", "CANCELLED"],
-    IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+    IN_PROGRESS: ["SUBMITTED", "CANCELLED"],
+    SUBMITTED: ["COMPLETED", "IN_PROGRESS"],
     CANCELLED: ["OPEN"],
 };
 
@@ -33,26 +37,53 @@ async function changeWork(db, value, actor, action, change) {
     });
 }
 
-async function setWorkStatus(work, report, status, resolutionNote, transaction) {
+async function setWorkStatus(db, work, report, status, input, actor, transaction) {
     if (!transitions[work.status]?.includes(status))
         throw Object.assign(new Error("허용되지 않는 상태 변경입니다."), { status: 409 });
+    const reviewing = work.status === "SUBMITTED";
+    if ((reviewing || ["CANCELLED", "OPEN"].includes(status)) && actor.role !== "ADMIN")
+        fail(403, "관리자만 검수·취소·재개할 수 있습니다.");
     const data = { status };
-    if (status === "COMPLETED") {
-        if (!resolutionNote)
-            throw Object.assign(new Error("완료 시 처리 결과가 필요합니다."), { status: 400 });
-        data.resolutionNote = resolutionNote;
-        data.completedAt = new Date();
+    if (status === "IN_PROGRESS" || status === "SUBMITTED")
+        await checkDependencies(db, work, transaction);
+    if (status === "SUBMITTED") {
+        data.resolutionNote = text(input.resolutionNote || work.resolutionNote, "처리 결과", 10000);
+        if (input.parts !== undefined) await useParts(db, work, input.parts, actor, transaction);
+    }
+    if (reviewing) {
+        const approved = status === "COMPLETED";
+        await db.WorkReview.create({
+            workOrderId: work.id, reviewerId: actor.id,
+            decision: approved ? "APPROVED" : "REJECTED",
+            comment: approved && !input.comment ? null : text(input.comment, "검수 의견", 5000),
+        }, { transaction });
+        if (approved) data.completedAt = new Date();
     }
     if (status === "OPEN") {
+        await db.WorkAssignment.destroy({ where: { workOrderId: work.id }, transaction });
         data.assigneeId = null;
         data.completedAt = null;
     }
     await work.update(data, { transaction });
-    await report.update({
-        status: status === "COMPLETED" ? "RESOLVED"
-            : status === "IN_PROGRESS" ? "IN_PROGRESS" : "CONFIRMED",
-    }, { transaction });
+    await syncReportStatus(db, report, transaction);
     return work;
 }
 
-module.exports = { changeWork, setWorkStatus };
+async function syncReportStatus(db, report, transaction) {
+    const work = await db.WorkOrder.findAll({
+        where: { reportId: report.id },
+        attributes: ["status"],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+    });
+    const active = work.filter((item) => item.status !== "CANCELLED");
+    let status = "CONFIRMED";
+    if (active.length && active.every((item) => item.status === "COMPLETED")) {
+        status = "RESOLVED";
+    } else if (active.some((item) => ["IN_PROGRESS", "SUBMITTED", "COMPLETED"].includes(item.status))) {
+        status = "IN_PROGRESS";
+    }
+    await report.update({ status }, { transaction });
+}
+
+module.exports = { changeWork, setWorkStatus, syncReportStatus };

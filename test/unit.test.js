@@ -11,9 +11,9 @@ test("교수님 방식의 모델 클래스는 연결별로 분리되고 기존 �
         expect(first.User.sequelize).toBe(first.sequelize);
         expect(second.User.sequelize).toBe(second.sequelize);
         expect(first.Report.getTableName()).toBe("reports");
-        expect(first.Report.associations.WorkOrder.target).toBe(first.WorkOrder);
+        expect(first.Report.associations.WorkOrders.target).toBe(first.WorkOrder);
         expect(first.Report.associations.ReportHistories.target).toBe(first.ReportHistory);
-        expect(first.WorkOrder.rawAttributes.reportId.unique).toBe(true);
+        expect(first.WorkOrder.rawAttributes.reportId.unique).toBeUndefined();
         expect(first.ReportHistory.rawAttributes.reportId.onDelete).toBe("CASCADE");
     } finally {
         await Promise.all([first.sequelize.close(), second.sequelize.close()]);
